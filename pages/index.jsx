@@ -19,47 +19,21 @@ function formatDuration(ms) {
   return `${h}:${m}:${s}`;
 }
 
-function downloadCSV(logs, suspect) {
-  const header = "年,月,日,開始時間,終了時間,所要時間,項目\n";
-  const rows = logs.map(log => {
-    const d = new Date(log.date);
-    const y = d.getFullYear();
-    const m = d.getMonth() + 1;
-    const day = d.getDate();
-    return [y, m, day, log.start, log.end, log.duration, log.activity].join(",");
-  }).join("\n");
-  const blob = new Blob([header + rows], { type: "text/csv" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `${suspect || "defense"}_logs.csv`;
-  a.click();
-}
-
 export default function Home() {
   const [activity, setActivity] = useState(activityOptions[0]);
   const [startTime, setStartTime] = useState(null);
   const [logs, setLogs] = useState([]);
   const [suspect, setSuspect] = useState("");
+  const [suspectList, setSuspectList] = useState([]);
 
   useEffect(() => {
-    const saved = localStorage.getItem("defense_logs_by_suspect");
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      if (parsed[suspect]) setLogs(parsed[suspect]);
-    }
-  }, [suspect]);
+    fetch("https://script.google.com/macros/s/AKfycbxiwGPda-TV9vltPEQGNXbbTkqYZgZ4RSCPk7k43eMBwgOC7Mc9u_uoyyj20ktnzrzX/exec")
+      .then(res => res.json())
+      .then(data => setSuspectList(data))
+      .catch(err => console.error("GET失敗", err));
+  }, []);
 
-  useEffect(() => {
-    const saved = localStorage.getItem("defense_logs_by_suspect");
-    const all = saved ? JSON.parse(saved) : {};
-    all[suspect] = logs;
-    localStorage.setItem("defense_logs_by_suspect", JSON.stringify(all));
-  }, [logs, suspect]);
-
-  const start = () => {
-    setStartTime(new Date());
-  };
+  const start = () => setStartTime(new Date());
 
   const stop = () => {
     const end = new Date();
@@ -75,108 +49,51 @@ export default function Home() {
       };
       setLogs([...logs, newLog]);
       setStartTime(null);
-    // Google スプレッドシート送信
-    const d = new Date();
-    fetch("https://script.google.com/macros/s/AKfycbwyK5onxitR3JHOkw_O9lxGKrYnPOHU901BClppZKSYiFgf8VMOG9bqNIa67SmqA-PotA/exec", {
-      method: "POST",
-      body: JSON.stringify({
-        year: d.getFullYear(),
-        month: d.getMonth() + 1,
-        day: d.getDate(),
-        start: startTime.toLocaleTimeString(),
-        end: end.toLocaleTimeString(),
-        duration,
-        activity
+
+      const d = new Date();
+      fetch("https://script.google.com/macros/s/AKfycbxiwGPda-TV9vltPEQGNXbbTkqYZgZ4RSCPk7k43eMBwgOC7Mc9u_uoyyj20ktnzrzX/exec", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          suspect,
+          year: d.getFullYear(),
+          month: d.getMonth() + 1,
+          day: d.getDate(),
+          start: startTime.toLocaleTimeString(),
+          end: end.toLocaleTimeString(),
+          duration,
+          activity
+        })
       })
-    }).then(res => console.log("送信成功")).catch(err => console.error("送信失敗", err));
-
+      .then(res => console.log("送信成功"))
+      .catch(err => console.error("送信失敗", err));
     }
-  };
-
-  const updateField = (idx, field, value) => {
-    const updatedLogs = [...logs];
-    const log = { ...updatedLogs[idx] };
-    if (['year', 'month', 'day'].includes(field)) {
-      const d = new Date(log.date);
-      if (field === 'year') d.setFullYear(value);
-      if (field === 'month') d.setMonth(value - 1);
-      if (field === 'day') d.setDate(value);
-      log.date = d;
-    } else {
-      log[field] = value;
-    }
-    updatedLogs[idx] = log;
-    setLogs(updatedLogs);
-  };
-
-  const deleteRow = (idx) => {
-    const updatedLogs = logs.filter((_, i) => i !== idx);
-    setLogs(updatedLogs);
   };
 
   return (
-    <div style={{ padding: 20, maxWidth: 960, margin: "auto" }}>
-      <h2>弁護活動タイマー（記録・CSV出力・被疑者ごと保存）</h2>
-
-      <div style={{ marginBottom: 10 }}>
-        <label>事件名・被疑者名：</label>
-        <input type="text" value={suspect} onChange={e => setSuspect(e.target.value)} placeholder="例：山田太郎" />
-      </div>
-
+    <div style={{ padding: 20 }}>
+      <h2>弁護活動タイマー（Googleスプレッドシート連携版）</h2>
       <div>
-        <label>活動項目：</label>
+        <label>事件名（既存候補）:</label>
+        <select value={suspect} onChange={e => setSuspect(e.target.value)}>
+          <option value="">選択してください</option>
+          {suspectList.map((s, i) => <option key={i} value={s}>{s}</option>)}
+        </select>
+        <br/>
+        <label>または新しい事件名:</label>
+        <input placeholder="新規事件名" onChange={e => setSuspect(e.target.value)} />
+      </div>
+      <div>
         <select value={activity} onChange={e => setActivity(e.target.value)}>
-          {activityOptions.map((a, i) => (
-            <option key={i} value={a}>{a}</option>
-          ))}
+          {activityOptions.map((opt, i) => <option key={i} value={opt}>{opt}</option>)}
         </select>
       </div>
-
-      <div style={{ marginTop: 10 }}>
-        <button onClick={start} disabled={!!startTime}>開始</button>
-        <button onClick={stop} disabled={!startTime}>終了</button>
-        <button onClick={() => downloadCSV(logs, suspect)} style={{ marginLeft: 10 }}>CSV出力</button>
-        <button onClick={() => {
-          const confirmed = confirm("本当にこの事件の記録を削除しますか？");
-          if (confirmed) {
-            const saved = localStorage.getItem("defense_logs_by_suspect");
-            const all = saved ? JSON.parse(saved) : {};
-            delete all[suspect];
-            localStorage.setItem("defense_logs_by_suspect", JSON.stringify(all));
-            setLogs([]);
-          }
-        }} style={{ marginLeft: 10, color: 'red' }}>この事件の記録を削除</button>
+      <div>
+        <button onClick={start}>開始</button>
+        <button onClick={stop}>終了</button>
       </div>
-
-      <h3 style={{ marginTop: 20 }}>記録一覧</h3>
-      <table border="1" cellPadding="5">
-        <thead>
-          <tr>
-            <th>年</th><th>月</th><th>日</th><th>開始</th><th>終了</th><th>所要時間</th><th>活動項目</th><th>操作</th>
-          </tr>
-        </thead>
-        <tbody>
-          {logs.map((log, idx) => {
-            const d = new Date(log.date);
-            return (
-              <tr key={idx}>
-                <td><input value={d.getFullYear()} onChange={e => updateField(idx, 'year', e.target.value)} style={{ width: "4em" }} /></td>
-                <td><input value={d.getMonth() + 1} onChange={e => updateField(idx, 'month', e.target.value)} style={{ width: "3em" }} /></td>
-                <td><input value={d.getDate()} onChange={e => updateField(idx, 'day', e.target.value)} style={{ width: "3em" }} /></td>
-                <td><input value={log.start} onChange={e => updateField(idx, 'start', e.target.value)} /></td>
-                <td><input value={log.end} onChange={e => updateField(idx, 'end', e.target.value)} /></td>
-                <td><input value={log.duration} onChange={e => updateField(idx, 'duration', e.target.value)} /></td>
-                <td>
-                  <select value={log.activity} onChange={e => updateField(idx, 'activity', e.target.value)}>
-                    {activityOptions.map((a, i) => <option key={i} value={a}>{a}</option>)}
-                  </select>
-                </td>
-                <td><button onClick={() => deleteRow(idx)} style={{ color: 'red' }}>削除</button></td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
     </div>
   );
 }
