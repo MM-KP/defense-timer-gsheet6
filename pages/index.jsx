@@ -18,21 +18,22 @@ const formatDuration = (ms) => {
   return `${h}:${m}:${s}`;
 };
 
-// ⬇️ CSVダウンロード関数の追加
 const downloadCSV = (logs, suspect) => {
   const header = "事件名,年,月,日,開始,終了,所要時間,活動項目\n";
-  const rows = logs.map(log => {
-    return [
-      log.suspect || "",
-      log.year,
-      log.month,
-      log.day,
-      log.start,
-      log.end,
-      log.duration,
-      log.activity
-    ].join(",");
-  }).join("\n");
+  const rows = logs
+    .map((log) => {
+      return [
+        log.suspect || "",
+        log.year,
+        log.month,
+        log.day,
+        log.start,
+        log.end,
+        log.duration,
+        log.activity,
+      ].join(",");
+    })
+    .join("\n");
 
   const blob = new Blob([header + rows], { type: "text/csv" });
   const url = URL.createObjectURL(blob);
@@ -89,6 +90,7 @@ export default function Home() {
 
     fetch(GAS_URL, {
       method: "POST",
+      mode: "cors", // ✅ 追加された行
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(newLog),
     })
@@ -123,10 +125,7 @@ export default function Home() {
 
       <div>
         <label>活動項目: </label>
-        <select
-          value={activity}
-          onChange={(e) => setActivity(e.target.value)}
-        >
+        <select value={activity} onChange={(e) => setActivity(e.target.value)}>
           {activityOptions.map((a, i) => (
             <option key={i} value={a}>
               {a}
@@ -142,7 +141,6 @@ export default function Home() {
         <button onClick={stop} disabled={!startTime}>
           終了
         </button>
-        {/* ⬇️ ここにCSV出力ボタンを追加 */}
         <button
           style={{ marginLeft: 10 }}
           onClick={() => downloadCSV(logs, suspect)}
@@ -172,7 +170,9 @@ export default function Home() {
               <td>
                 <input
                   value={log.suspect}
-                  onChange={(e) => updateField(idx, "suspect", e.target.value)}
+                  onChange={(e) =>
+                    updateField(idx, "suspect", e.target.value)
+                  }
                 />
               </td>
               <td>
@@ -216,7 +216,9 @@ export default function Home() {
               <td>
                 <select
                   value={log.activity}
-                  onChange={(e) => updateField(idx, "activity", e.target.value)}
+                  onChange={(e) =>
+                    updateField(idx, "activity", e.target.value)
+                  }
                 >
                   {activityOptions.map((a, i) => (
                     <option key={i} value={a}>
