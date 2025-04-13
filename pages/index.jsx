@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 
 const activityOptions = [
@@ -6,9 +5,9 @@ const activityOptions = [
   "②接見（移動時間）",
   "③接見（待機時間）",
   "④面談・連絡・打合せ",
-  "⑤示談交渉・被害弁償",
-  "⑥検察官・裁判官との折衝（意見書作成含む）",
-  "⑦身体拘束関係手続（勾留理由開示請求等）",
+  "⑤示談交決・被害貰儀",
+  "⑥検察官・裏人との折術（意見書作成含む）",
+  "⑦身体押束関係手続（動畜理由開示請求等）",
   "⑧その他（①～⑦に該当しない弁護活動）"
 ];
 
@@ -24,14 +23,6 @@ export default function Home() {
   const [startTime, setStartTime] = useState(null);
   const [logs, setLogs] = useState([]);
   const [suspect, setSuspect] = useState("");
-  const [suspectList, setSuspectList] = useState([]);
-
-  useEffect(() => {
-    fetch("https://script.google.com/macros/s/AKfycbxiwGPda-TV9vltPEQGNXbbTkqYZgZ4RSCPk7k43eMBwgOC7Mc9u_uoyyj20ktnzrzX/exec")
-      .then(res => res.json())
-      .then(data => setSuspectList(data))
-      .catch(err => console.error("GET失敗", err));
-  }, []);
 
   const start = () => setStartTime(new Date());
 
@@ -51,7 +42,7 @@ export default function Home() {
       setStartTime(null);
 
       const d = new Date();
-      fetch("https://script.google.com/macros/s/AKfycbxiwGPda-TV9vltPEQGNXbbTkqYZgZ4RSCPk7k43eMBwgOC7Mc9u_uoyyj20ktnzrzX/exec", {
+      fetch("https://script.google.com/macros/s/AKfycbwyK5onxitR3JHOkw_O9lxGKrYnPOHU901BClppZKSYiFgf8VMOG9bqNIa67SmqA-PotA/exec", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -74,26 +65,13 @@ export default function Home() {
 
   return (
     <div style={{ padding: 20 }}>
-      <h2>弁護活動タイマー（Googleスプレッドシート連携版）</h2>
-      <div>
-        <label>事件名（既存候補）:</label>
-        <select value={suspect} onChange={e => setSuspect(e.target.value)}>
-          <option value="">選択してください</option>
-          {suspectList.map((s, i) => <option key={i} value={s}>{s}</option>)}
-        </select>
-        <br/>
-        <label>または新しい事件名:</label>
-        <input placeholder="新規事件名" onChange={e => setSuspect(e.target.value)} />
-      </div>
-      <div>
-        <select value={activity} onChange={e => setActivity(e.target.value)}>
-          {activityOptions.map((opt, i) => <option key={i} value={opt}>{opt}</option>)}
-        </select>
-      </div>
-      <div>
-        <button onClick={start}>開始</button>
-        <button onClick={stop}>終了</button>
-      </div>
+      <h2>弁護活動タイマー</h2>
+      <input placeholder="事件名" value={suspect} onChange={e => setSuspect(e.target.value)} />
+      <select value={activity} onChange={e => setActivity(e.target.value)}>
+        {activityOptions.map((opt, i) => <option key={i} value={opt}>{opt}</option>)}
+      </select>
+      <button onClick={start}>開始</button>
+      <button onClick={stop}>終了</button>
     </div>
   );
 }
