@@ -89,12 +89,16 @@ export default function Home() {
     setStartTime(null);
 
     fetch(GAS_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(newLog),
-    })
-      .then(() => console.log("送信成功"))
-      .catch((err) => console.error("送信失敗", err));
+  method: "POST",
+  mode: "cors", 
+  headers: {
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify(newLog),
+})
+  .then((res) => res.text()) // ← レスポンス確認のため
+  .then((text) => console.log("GASからの返答:", text))
+  .catch((err) => console.error("送信失敗:", err));
   };
 
   const updateField = (idx, field, value) => {
