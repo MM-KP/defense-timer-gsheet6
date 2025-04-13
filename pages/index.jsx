@@ -18,6 +18,30 @@ const formatDuration = (ms) => {
   return `${h}:${m}:${s}`;
 };
 
+// ⬇️ CSVダウンロード関数の追加
+const downloadCSV = (logs, suspect) => {
+  const header = "事件名,年,月,日,開始,終了,所要時間,活動項目\n";
+  const rows = logs.map(log => {
+    return [
+      log.suspect || "",
+      log.year,
+      log.month,
+      log.day,
+      log.start,
+      log.end,
+      log.duration,
+      log.activity
+    ].join(",");
+  }).join("\n");
+
+  const blob = new Blob([header + rows], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${suspect || "defense"}_logs.csv`;
+  a.click();
+};
+
 export default function Home() {
   const [suspect, setSuspect] = useState("");
   const [activity, setActivity] = useState(activityOptions[0]);
@@ -117,6 +141,13 @@ export default function Home() {
         </button>
         <button onClick={stop} disabled={!startTime}>
           終了
+        </button>
+        {/* ⬇️ ここにCSV出力ボタンを追加 */}
+        <button
+          style={{ marginLeft: 10 }}
+          onClick={() => downloadCSV(logs, suspect)}
+        >
+          CSVダウンロード
         </button>
       </div>
 
