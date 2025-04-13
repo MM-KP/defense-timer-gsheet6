@@ -90,7 +90,6 @@ export default function Home() {
 
     fetch(GAS_URL, {
       method: "POST",
-      mode: "cors", // ✅ 追加された行
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(newLog),
     })
